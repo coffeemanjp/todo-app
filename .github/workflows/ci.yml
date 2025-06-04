@@ -5,6 +5,7 @@ on:
     branches: [ main ]
   pull_request:
     branches: [ main ]
+  workflow_dispatch:
 
 jobs:
   build:
@@ -29,11 +30,13 @@ jobs:
       run: flutter test
     
     - name: Build web
-      run: flutter build web
+      run: flutter build web --base-href "/todo-app/"
     
     - name: Deploy to GitHub Pages
       if: github.ref == 'refs/heads/main'
       uses: peaceiris/actions-gh-pages@v3
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
-        publish_dir: ./build/web 
+        publish_dir: ./build/web
+        commit_message: "Deploy to GitHub Pages"
+        force_orphan: true 
