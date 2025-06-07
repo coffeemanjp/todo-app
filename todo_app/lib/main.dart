@@ -24,7 +24,9 @@ class Todo {
   String title;
   String description;
   bool isDone;
-  Todo({required this.title, required this.description, this.isDone = false});
+  final String id;
+  Todo({required this.title, required this.description, this.isDone = false, String? id})
+      : id = id ?? UniqueKey().toString();
 }
 
 class TodoListPage extends StatefulWidget {
@@ -50,6 +52,12 @@ class _TodoListPageState extends State<TodoListPage> {
     });
   }
 
+  void _deleteTodo(String id) {
+    setState(() {
+      _todos.removeWhere((todo) => todo.id == id);
+    });
+  }
+
   @override
   void dispose() {
     _titleController.dispose();
@@ -60,71 +68,161 @@ class _TodoListPageState extends State<TodoListPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF5F6FA),
       appBar: AppBar(
-        title: const Text('ToDoリスト'),
+        title: const Text('ToDoリスト', style: TextStyle(fontWeight: FontWeight.bold)),
+        backgroundColor: Colors.deepPurple,
+        foregroundColor: Colors.white,
+        elevation: 0,
+        centerTitle: true,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            TextField(
-              controller: _titleController,
-              decoration: const InputDecoration(
-                labelText: 'タイトル',
-                border: OutlineInputBorder(),
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black12,
+                      blurRadius: 8,
+                      offset: Offset(0, 4),
+                    ),
+                  ],
+                ),
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  children: [
+                    TextField(
+                      controller: _titleController,
+                      decoration: const InputDecoration(
+                        labelText: 'タイトル',
+                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.title),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: _descController,
+                      decoration: const InputDecoration(
+                        labelText: '説明',
+                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.description),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: _addTodo,
+                        icon: const Icon(Icons.add),
+                        label: const Text('追加'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.deepPurple,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: _descController,
-              decoration: const InputDecoration(
-                labelText: '説明',
-                border: OutlineInputBorder(),
+              const SizedBox(height: 24),
+              Text(
+                'タスク一覧',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.deepPurple.shade700,
+                ),
               ),
-            ),
-            const SizedBox(height: 8),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _addTodo,
-                child: const Text('追加'),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Expanded(
-              child: _todos.isEmpty
-                  ? const Center(child: Text('ToDoがありません'))
-                  : ListView.builder(
+              const SizedBox(height: 12),
+              _todos.isEmpty
+                  ? Container(
+                      margin: const EdgeInsets.only(top: 40),
+                      child: Column(
+                        children: [
+                          Icon(Icons.inbox, size: 60, color: Colors.grey.shade300),
+                          const SizedBox(height: 12),
+                          const Text('ToDoがありません', style: TextStyle(color: Colors.grey, fontSize: 16)),
+                        ],
+                      ),
+                    )
+                  : ListView.separated(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
                       itemCount: _todos.length,
+                      separatorBuilder: (context, index) => const SizedBox(height: 12),
                       itemBuilder: (context, index) {
                         final todo = _todos[index];
-                        return Card(
-                          child: ListTile(
-                            leading: Checkbox(
-                              value: todo.isDone,
-                              onChanged: (val) {
-                                setState(() {
-                                  todo.isDone = val ?? false;
-                                });
-                              },
+                        return Dismissible(
+                          key: ValueKey(todo.id),
+                          direction: DismissDirection.endToStart,
+                          onDismissed: (_) => _deleteTodo(todo.id),
+                          background: Container(
+                            alignment: Alignment.centerRight,
+                            padding: const EdgeInsets.symmetric(horizontal: 20),
+                            decoration: BoxDecoration(
+                              color: Colors.redAccent,
+                              borderRadius: BorderRadius.circular(12),
                             ),
-                            title: Text(
-                              todo.title,
-                              style: TextStyle(
-                                decoration: todo.isDone
-                                    ? TextDecoration.lineThrough
-                                    : null,
+                            child: const Icon(Icons.delete, color: Colors.white, size: 28),
+                          ),
+                          child: Card(
+                            elevation: 3,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: ListTile(
+                              leading: Checkbox(
+                                value: todo.isDone,
+                                activeColor: Colors.deepPurple,
+                                onChanged: (val) {
+                                  setState(() {
+                                    todo.isDone = val ?? false;
+                                  });
+                                },
+                              ),
+                              title: Text(
+                                todo.title,
+                                style: TextStyle(
+                                  decoration: todo.isDone ? TextDecoration.lineThrough : null,
+                                  fontWeight: FontWeight.bold,
+                                  color: todo.isDone ? Colors.grey : Colors.black,
+                                ),
+                              ),
+                              subtitle: todo.description.isNotEmpty
+                                  ? Text(
+                                      todo.description,
+                                      style: TextStyle(
+                                        color: todo.isDone ? Colors.grey : Colors.black87,
+                                      ),
+                                    )
+                                  : null,
+                              trailing: IconButton(
+                                icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
+                                onPressed: () => _deleteTodo(todo.id),
+                                tooltip: '削除',
                               ),
                             ),
-                            subtitle: Text(todo.description),
                           ),
                         );
                       },
                     ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 }
+
+// UI updated for style test. (trigger CI/CD)
